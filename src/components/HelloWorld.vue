@@ -105,17 +105,7 @@ const stopRecording = () => {
 
 <template>
   <div class="card">
-    <!-- <div class="wrap">
-      <button @click="data.voice">开始录音</button>
-      <button @click="data.handlePlay">播放录音</button>
-      <button @click="data.handleStop">停止录音</button>
-    </div> -->
-    <div class="wrap">
-      <button @click="startRecording">开始录音</button>
-      <button @click="stopRecording">停止录音</button>
-      <audio controls :src="audioUrl" v-if="audioUrl"></audio>
-    </div>
-    <div class="mation">
+    <div class="mation" v-if="isRecording">
       <div class="ap">
         <div class="box">
           <div></div>
@@ -141,6 +131,17 @@ const stopRecording = () => {
         </div>
       </div>
     </div>
+    <!-- <div class="wrap">
+      <button @click="data.voice">开始录音</button>
+      <button @click="data.handlePlay">播放录音</button>
+      <button @click="data.handleStop">停止录音</button>
+    </div> -->
+    <div class="wrap">
+      <button @click="startRecording">开始录音</button>
+      <button @click="stopRecording">停止录音</button>
+      <audio controls :src="audioUrl" v-if="audioUrl"></audio>
+    </div>
+
   </div>
 </template>
 
