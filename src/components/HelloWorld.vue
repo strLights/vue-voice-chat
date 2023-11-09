@@ -3,9 +3,11 @@ import { ref, reactive } from 'vue'
 
 import Recorder from 'js-audio-recorder'
 
-const mediaRecorder = ref(null)
-const chunks = ref([])
-const transcript = ref('')
+const isRecording = ref(false);
+const mediaRecorder = ref(null);
+const audioChunks = ref([]);
+const audioUrl = ref('');
+
 const data = reactive({
   //用于存储创建的语音对象
   recorder: null,
@@ -68,34 +70,51 @@ const data = reactive({
     }
   },
 })
-const startRecording = () => {
-  navigator.mediaDevices.getUserMedia({ audio: true })
-    .then(stream => {
-      mediaRecorder.value = new MediaRecorder(stream);
-      mediaRecorder.value.addEventListener('dataavailable', (event) => {
-        chunks.value.push(event.data);
-      });
-      mediaRecorder.value.start();
-    })
-    .catch(error => console.error(error));
+const startRecording = async () => {
+  try {
+    // 请求麦克风权限并获取音频流
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    // 创建MediaRecorder实例
+    mediaRecorder.value = new MediaRecorder(stream);
+    mediaRecorder.value.ondataavailable = (event) => {
+      // 将音频块数据收集起来
+      audioChunks.value.push(event.data);
+    };
+    mediaRecorder.value.onstop = () => {
+      // 录音停止时，处理音频块数据
+      const audioBlob = new Blob(audioChunks.value);
+      audioUrl.value = URL.createObjectURL(audioBlob);
+      // 重置音频块
+      audioChunks.value = [];
+    };
+    // 开始录音
+    mediaRecorder.value.start();
+    isRecording.value = true;
+  } catch (error) {
+    console.error('无法获取麦克风输入:', error);
+  }
 }
 const stopRecording = () => {
-  mediaRecorder.value.stop();
-  const blob = new Blob(chunks.value, { type: 'audio/webm' });
-  const formData = new FormData();
-  formData.append('audio', blob, 'recording.webm');
-  fetch('/api/transcribe', { method: 'POST', body: formData })
-    .then(response => response.json())
-    .then(data => transcript.value = data.transcript)
-    .catch(error => console.error(error));
+  if (mediaRecorder.value) {
+    // 停止录音
+    mediaRecorder.value.stop();
+    isRecording.value = false;
+  }
 }
 </script>
 
 <template>
   <div class="card">
-    <button @click="data.voice">开始录音</button>
-    <button @click="stopRecording">停止录音</button>
-    <p>{{ transcript }}</p>
+    <!-- <div class="wrap">
+      <button @click="data.voice">开始录音</button>
+      <button @click="data.handlePlay">播放录音</button>
+      <button @click="data.handleStop">停止录音</button>
+    </div> -->
+    <div class="wrap">
+      <button @click="startRecording">开始录音</button>
+      <button @click="stopRecording">停止录音</button>
+      <audio controls :src="audioUrl" v-if="audioUrl"></audio>
+    </div>
     <div class="mation">
       <div class="ap">
         <div class="box">
@@ -128,6 +147,11 @@ const stopRecording = () => {
 <style scoped>
 .read-the-docs {
   color: #888;
+}
+
+.wrap {
+  display: flex;
+  justify-content: space-between;
 }
 
 .ap {
