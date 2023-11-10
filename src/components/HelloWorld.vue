@@ -7,6 +7,7 @@ const isRecording = ref(false);
 const mediaRecorder = ref(null);
 const audioChunks = ref([]);
 const audioUrl = ref('');
+const transcript = ref('');
 
 const data = reactive({
   //用于存储创建的语音对象
@@ -70,6 +71,7 @@ const data = reactive({
     }
   },
 })
+// 开始录音
 const startRecording = async () => {
   try {
     // 请求麦克风权限并获取音频流
@@ -85,7 +87,7 @@ const startRecording = async () => {
       const audioBlob = new Blob(audioChunks.value);
       audioUrl.value = URL.createObjectURL(audioBlob);
       // 重置音频块
-      audioChunks.value = [];
+      // audioChunks.value = [];
     };
     // 开始录音
     mediaRecorder.value.start();
@@ -99,6 +101,16 @@ const stopRecording = () => {
     // 停止录音
     mediaRecorder.value.stop();
     isRecording.value = false;
+    const blob = new Blob(audioChunks.value, { type: 'audio/webm' });
+    const formData = new FormData();
+    formData.append('audio', blob, 'recording.webm');
+    fetch('/api/transcribe', { method: 'POST', body: formData })
+      .then(response => response.json())
+      .then(data => transcript.value = data.transcript)
+      .catch(error => console.error(error));
+
+    audioChunks.value = [];
+    
   }
 }
 </script>
@@ -140,6 +152,7 @@ const stopRecording = () => {
       <button @click="startRecording">开始录音</button>
       <button @click="stopRecording">停止录音</button>
       <audio controls :src="audioUrl" v-if="audioUrl"></audio>
+      <p>{{ transcript }}</p>
     </div>
 
   </div>
